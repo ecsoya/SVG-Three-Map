@@ -1,6 +1,9 @@
 # SVG-Three-Map
 Convert SVG Map to 2.5D with Three.js
 
+## Documentation
+[https://ecsoya.github.io/three.js/2018/07/20/threejs.html](https://ecsoya.github.io/three.js/2018/07/20/threejs.html)
+
 ## Convert SVG to Three.js
 Using SVGLoader to convert all SVG shapes to Three.js
 
