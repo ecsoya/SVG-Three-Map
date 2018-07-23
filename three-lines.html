@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lines</title>
+</head>
+<body>
+<script src="js/three.js"></script>
+<script src="js/OrbitControls.js"></script>
+
+<!--https://github.com/spite/THREE.MeshLine-->
+<script src="js/lines/THREE.MeshLine.js"></script>
+
+<script>
+
+    var colors = [
+        0xed6a5a,
+        0xf4f1bb,
+        0x9bc1bc,
+        0x5ca4a9,
+        0xe6ebe0,
+        0xf0b67f,
+        0xfe5f55,
+        0xd6d1b1,
+        0xc7efcf,
+        0xeef5db,
+        0x50514f,
+        0xf25f5c,
+        0xffe066,
+        0x247ba0,
+        0x70c1b3
+    ];
+
+    var resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
+
+    var camera, scene, controls, renderer;
+
+    init();
+    addContents();
+    animate();
+
+    onWindowResize();
+
+    function onWindowResize() {
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( w, h );
+
+        resolution.set( w, h );
+
+    }
+
+    window.addEventListener( 'resize', onWindowResize );
+    function init() {
+        // camera
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 10000);
+        camera.position.set(0, 50, 500);
+        // scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        // light
+        var light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(0, 0, 1);
+        scene.add(light);
+        var splineCamera = new THREE.PerspectiveCamera(84, window.innerWidth / window.innerHeight, 0.01, 1000);
+        scene.add(splineCamera);
+
+        //grid
+        var helper = new THREE.GridHelper(100, 10);
+        // helper.rotation.x = Math.PI / 2;
+        scene.add(helper);
+
+        var axes = new THREE.AxesHelper(100);
+        scene.add(axes)
+
+        // renderer
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Orbit Controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.rotateSpeed = 0.5;
+        controls.minDistance = 100;
+        controls.maxDistance = 6000;
+
+        document.body.appendChild(renderer.domElement);
+    }
+
+    function addContents() {
+        // addLine();
+        // addCubes();
+        // addGeometryWithFace();
+
+        addLine2();
+    }
+
+    function addLine() {
+        //create a blue LineBasicMaterial
+        var material = new THREE.LineBasicMaterial({color: 0x0000ff});
+
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(new THREE.Vector3(-50, 0, 0));
+        geometry.vertices.push(new THREE.Vector3(0, 50, 0));
+        geometry.vertices.push(new THREE.Vector3(50, 0, 0));
+
+        var line = new THREE.Line(geometry, material);
+        scene.add(line);
+    }
+
+    function addLine2() {
+        // var line = new Float32Array( 600 );
+        // for( var j = 0; j < 200 * 3; j += 3 ) {
+        //     line[ j ] = -30 + .1 * j;
+        //     line[ j + 1 ] = 5 * Math.sin( .01 *  j );
+        //     line[ j + 2 ] = -20;
+        // }
+        // makeLine( line, 0 );
+        //
+        // var line = new Float32Array( 600 );
+        // for( var j = 0; j < 200 * 3; j += 3 ) {
+        //     line[ j ] = -30 + .1 * j;
+        //     line[ j + 1 ] = 5 * Math.cos( .02 *  j );
+        //     line[ j + 2 ] = -10;
+        // }
+        // makeLine( line, 1 );
+        //
+        // var line = new Float32Array( 600 );
+        // for( var j = 0; j < 200 * 3; j += 3 ) {
+        //     line[ j ] = -30 + .1 * j;
+        //     line[ j + 1 ] = 5 * Math.sin( .01 *  j ) * Math.cos( .005 * j );
+        //     line[ j + 2 ] = 0;
+        // }
+        // makeLine( line, 2 );
+        //
+        // var line = new Float32Array( 600 );
+        // for( var j = 0; j < 200 * 3; j += 3 ) {
+        //     line[ j ] = -30 + .1 * j;
+        //     line[ j + 1 ] = .02 * j + 5 * Math.sin( .01 *  j ) * Math.cos( .005 * j );
+        //     line[ j + 2 ] = 10;
+        // }
+        // makeLine( line, 4 );
+        //
+        // var line = new Float32Array( 600 );
+        // for( var j = 0; j < 200 * 3; j += 3 ) {
+        //     line[ j ] = -30 + .1 * j;
+        //     line[ j + 1 ] = Math.exp( .005 * j );
+        //     line[ j + 2 ] = 20;
+        // }
+        // makeLine( line, 5 );
+        //
+        // var line = new THREE.Geometry();
+        // line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
+        // line.vertices.push( new THREE.Vector3( 30, -30, -30 ) );
+        // makeLine( line, 3 );
+        //
+        // var line = new THREE.Geometry();
+        // line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
+        // line.vertices.push( new THREE.Vector3( -30, 30, -30 ) );
+        // makeLine( line, 3 );
+
+        var line = new THREE.Geometry();
+        line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
+        line.vertices.push( new THREE.Vector3( -30, -30, 30 ) );
+        makeLine( line, 3 );
+    }
+
+    function makeLine( geo, c ) {
+
+        var g = new MeshLine();
+        g.setGeometry( geo );
+
+        var material = new MeshLineMaterial( {
+            useMap: false,
+            // color: new THREE.Color( colors[ c ] ),
+            opacity: 1,
+            resolution: resolution,
+            sizeAttenuation: !false,
+            lineWidth: 5,
+            near: camera.near,
+            far: camera.far
+        });
+        var mesh = new THREE.Mesh( g.geometry, material );
+        scene.add( mesh );
+
+    }
+
+    function addCubes() {
+        var cube0 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0xffffff}));
+        cube0.name = "Cube";
+        scene.add(cube0);
+        printCubeInfo(cube0);
+
+        var cube1 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+        cube1.rotation.x = Math.PI / 2;
+        cube1.name = "Cube->R:X->(Math.PI/2)";
+        scene.add(cube1);
+        printCubeInfo(cube1);
+
+
+        var cube2 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0xff0000}));
+        cube2.rotation.y = Math.PI / 2;
+        cube2.name = "Cube-R:Y->(Math.PI/2)";
+        scene.add(cube2);
+        printCubeInfo(cube2);
+
+
+        var cube3 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        cube3.rotation.z = Math.PI / 2;
+        cube3.name = "Cube->R:Z->(Math.PI/2)";
+        scene.add(cube3);
+        printCubeInfo(cube3);
+
+
+        var cube4 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+        cube4.translateX(100);//沿X轴移动100.
+        cube4.name = "Cube->M:X->100";
+        scene.add(cube4);
+        printCubeInfo(cube4);
+
+
+        var cube5 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0xff0000}));
+        cube5.translateY(100);
+        cube5.name = "Cube->M:Y->100";
+        scene.add(cube5);
+        printCubeInfo(cube5);
+
+
+        var cube6 = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 20), new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        cube6.translateZ(100);
+        cube6.name = "Cube0->M:Z->100";
+        scene.add(cube6);
+        printCubeInfo(cube6);
+
+    }
+
+    function addGeometryWithFace() {
+        var material = new THREE.MeshStandardMaterial({color: 0x00cc00});
+
+        //create a triangular geometry
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(new THREE.Vector3(-50, -50, 0));
+        geometry.vertices.push(new THREE.Vector3(50, -50, 0));
+        geometry.vertices.push(new THREE.Vector3(50, 50, 0));
+
+        //create a new face using vertices 0, 1, 2
+        var normal = new THREE.Vector3(0, 1, 0); //optional
+        var color = new THREE.Color(0xffaa00); //optional
+        var materialIndex = 0; //optional
+        var face = new THREE.Face3(0, 1, 2, normal, color, materialIndex);
+
+        //add the face to the geometry's faces array
+        geometry.faces.push(face);
+
+        //the face normals and vertex normals can be calculated automatically if not supplied above
+        geometry.computeFaceNormals();
+        geometry.computeVertexNormals();
+
+        scene.add(new THREE.Mesh(geometry, material));
+    }
+
+    function printCubeInfo(cube) {
+        var size = getSize(cube);
+        var center = getCenter(cube);
+        var position = getPosition(cube);
+        console.log(cube.name);
+        console.log("  size: {x: " + size.x + ", y: " + size.y + ", z: " + size.z + "}");
+        console.log("  center: {x: " + center.x + ", y: " + center.y + ", z: " + center.z + "}");
+        console.log("  position: {x: " + position.x + ", y: " + position.y + ", z: " + position.z + "}");
+
+        var wp = cube.getWorldPosition();
+        console.log("  world: {x: " + wp.x + ", y: " + wp.y + ", z: " + wp.z + "}");
+
+        var pp = new THREE.Vector3();
+        pp = scene.getWorldPosition(pp);
+        pp = cube.localToWorld(pp);
+        console.log("  local2world: {x: " + pp.x + ", y: " + pp.y + ", z: " + pp.z + "}");
+        console.log("---------------------------------------");
+    }
+
+    function getPosition(mesh) {
+        var position = new THREE.Vector3();
+        return mesh.getWorldPosition(position);
+    }
+
+    function getSize(mesh) {
+        if (mesh.geometry) {
+            mesh.geometry.computeBoundingBox();
+            return mesh.geometry.boundingBox.getSize();
+        }
+        return null;
+    }
+
+    function getCenter(mesh) {
+        if (mesh.geometry) {
+            mesh.geometry.computeBoundingBox();
+            return mesh.geometry.boundingBox.getCenter();
+        }
+        return null;
+    }
+
+    function animate() {
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
+</script>
+</body>
+</html>

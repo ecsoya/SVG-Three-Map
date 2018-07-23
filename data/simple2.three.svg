@@ -1,0 +1,11 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <title>simple2.three</title>
+    <rect width="100" height="100" fill="#fff"/>
+    <rect x="5" y="5" width="23" height="9" fill="lime"/>
+    <rect x="74" y="82" width="23" height="14" fill="red"/>
+    <rect x="5" y="28.5" width="38" height="8" fill="#c69c6d"/>
+    <rect x="63" y="28" width="34" height="9" fill="#c7b299"/>
+    <rect x="34" y="52.5" width="40" height="10.5" fill="#c7b299"/>
+    <path d="M16.5,78.33c5.17,1.5,8.5-3.5,0-3S1.17,70.67,6.83,66,8.67,52.5,8.67,52.5" fill="#fff" stroke="#000"
+          stroke-miterlimit="10"/>
+</svg>

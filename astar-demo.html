@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Astar Test</title>
+</head>
+<body>
+<script src="js/astar.js"></script>
+<script>
+    var graph = new Graph([
+        [1,1,1,1],
+        [0,1,1,0],
+        [0,0,1,1]
+    ]);
+    var start = graph.grid[0][0];
+    var end = graph.grid[1][2];
+    var result = astar.search(graph, start, end);
+    console.log("A* - path: " + result.length);
+</script>
+</body>
+</html>

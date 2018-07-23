@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello THREE</title>
+</head>
+<body>
+<script src="js/three.js"></script>
+<script>
+
+    var camera, scene, controls, renderer;
+
+    init();
+    animate();
+
+    function init() {
+        // camera
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 10000);
+        camera.position.set(0, 50, 500);
+        // scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        // light
+        var light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(0, 0, 1);
+        scene.add(light);
+
+        //Add a Cube
+        var geometry = new THREE.BoxGeometry(50, 100, 20);
+        var material = new THREE.MeshBasicMaterial({color: 0xff0000});
+        var mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        cube.name = "Cube";
+        cube.rotation.y = Math.PI / 4;
+        cube.rotation.z = Math.PI / 4;
+        scene.add(cube);
+
+        // renderer
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        document.body.appendChild(renderer.domElement);
+    }
+
+    function animate() {
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
+    function drawHeart() {
+        var heartShape = new THREE.Shape();
+
+        heartShape.moveTo(25, 25);
+        heartShape.bezierCurveTo(25, 25, 20, 0, 0, 0);
+        heartShape.bezierCurveTo(30, 0, 30, 35, 30, 35);
+        heartShape.bezierCurveTo(30, 55, 10, 77, 25, 95);
+        heartShape.bezierCurveTo(60, 77, 80, 55, 80, 35);
+        heartShape.bezierCurveTo(80, 35, 80, 0, 50, 0);
+        heartShape.bezierCurveTo(35, 0, 25, 25, 25, 25);
+
+        var extrudeSettings = {
+            amount: 8,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 2,
+            bevelSize: 1,
+            bevelThickness: 1
+        };
+
+        var geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+
+        var mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial());
+
+
+        var path = new THREE.Path();
+
+        path.lineTo( 0, 0.8 );
+        path.quadraticCurveTo( 0, 1, 0.2, 1 );
+        path.lineTo( 1, 1 );
+
+        var points = path.getPoints();
+
+        var geometry = new THREE.BufferGeometry().setFromPoints( points );
+        var material = new THREE.LineBasicMaterial( { color: 0xffffff } );
+
+        var line = new THREE.Line( geometry, material );
+        scene.add( line );
+    }
+
+    var mouse = new THREE.Vector2();
+
+    function onMouseMove( event ) {
+
+        // calculate mouse position in normalized device coordinates
+        // (-1 to +1) for both components
+
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+    }
+
+    function render() {
+
+        // update the picking ray with the camera and mouse position
+        raycaster.setFromCamera( mouse, camera );
+
+        // calculate objects intersecting the picking ray
+        var intersects = raycaster.intersectObjects( scene.children );
+
+        for ( var i = 0; i < intersects.length; i++ ) {
+
+            intersects[ i ].object.material.color.set( 0xff0000 );
+
+        }
+
+        renderer.render( scene, camera );
+
+    }
+
+    window.addEventListener( 'mousemove', onMouseMove, false );
+
+    window.requestAnimationFrame(render);
+</script>
+</body>
+</html>

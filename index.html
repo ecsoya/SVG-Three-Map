@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Map 2.5D</title>
+    <style type="text/css">
+        .title {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            line-height: 1;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+<div id="fly" class="title"></div>
+
+<!--<div class="title floor">This is the FLOOR</div>-->
+<script src="js/three.js"></script>
+<script src="js/three.module.js"></script>
+<script src="js/SVGLoader.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/TypedGeometryExporter.js"></script>
+
+<!--https://github.com/spite/THREE.MeshLine-->
+<script src="js/lines/THREE.MeshLine.js"></script>
+
+<script src="js/jquery-3.3.1.js"></script>
+<script src="js/astar.js"></script>
+
+<script src="js/GraphFactory.js"></script>
+<script src="js/FloorInfoFactory.js"></script>
+<script src="js/GridGenerator.js"></script>
+<script src="js/Rect.js"></script>
+<script src="main.js"></script>
+<script>
+    // const SVG_URL = "data/simple2.three.svg";
+    // const DEFAULT_EXTRUDE_DEPTH = 5;
+    // const DEFAULT_GRID_SIZE = 1;
+
+    const SVG_URL = "data/svg2.three.svg";
+    const DEFAULT_EXTRUDE_DEPTH = 50;
+    const DEFAULT_GRID_SIZE = 20;
+
+    const SOURCE_SPRITE_URL = "data/sprites/source-sprite.png";
+    const TARGET_SPRITE_URL = "data/sprites/target-sprite.png";
+
+
+    var mouse = {x: 0, y: 0};
+
+    var camera, scene, renderer, controls, raycaster;
+    var group;
+
+    // source and target
+    var sourceSprite, targetSprite, sourceIntersected, targetIntersected;
+
+    // highlight
+    var highlightSprite, highlightIntersected;
+
+    var currentIntersected;
+    var time = Date.now();
+
+    //Path finding
+    var floorInfo = {};
+    var gridGenerator;
+    var graph;
+    var pathBlueLine, pathRedLine, pathGreenLine, pathFatLine;
+
+    var resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+
+    var selectionBox;
+
+    initThree();
+
+    addListeners();
+
+    loadThreeData();
+
+    function addListeners() {
+        document.addEventListener('mousemove', onDocumentMouseMove);
+        document.addEventListener('mousedown', onDocumentMouseDown);
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    function initThree() {
+        initRenderer();
+
+        raycaster = new THREE.Raycaster();
+
+        scene = new THREE.Scene();
+        scene.name = "Scene";
+
+        // //Add Axes.
+        var axes = new THREE.AxisHelper(1000);
+        scene.add(axes);
+
+        // Add Grids
+        var helper = new THREE.GridHelper(1000, 10);
+        helper.rotation.x = Math.PI / 2;
+        scene.add(helper);
+
+        initCamera();
+
+        initLights();
+
+        // Add all SVG Shapes to this group.
+        group = new THREE.Group();
+        group.name = "Root";
+        group.renderOrder = 1;
+        scene.add(group);
+
+        initControls();
+
+        initSelctionBox();
+
+        animate();
+    }
+
+    function initSelctionBox() {
+        selectionBox = new THREE.BoxHelper();
+        selectionBox.material.depthTest = false;
+        selectionBox.material.transparent = true;
+        selectionBox.visible = false;
+        scene.add(selectionBox);
+    }
+
+    function initControls() {
+        // Orbit Controls
+        // controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // controls.rotateSpeed = 0.5;
+        // controls.minDistance = 100;
+        // controls.maxDistance = 6000;
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        //设置控制器的中心点
+        //controls.target.set( 0, 5, 0 );
+        // 如果使用animate方法时，将此函数删除
+        //controls.addEventListener( 'change', render );
+        // 使动画循环使用时阻尼或自转 意思是否有惯性
+        controls.enableDamping = true;
+        //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+        //controls.dampingFactor = 0.25;
+        //是否可以缩放
+        controls.enableZoom = true;
+        //是否自动旋转
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 0.5;
+        //设置相机距离原点的最远距离
+        controls.minDistance = 1;
+        //设置相机距离原点的最远距离
+        controls.maxDistance = 2000;
+        //是否开启右键拖拽
+        controls.enablePan = true;
+    }
+
+    function initRenderer() {
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0xffffff);
+
+        document.body.appendChild(renderer.domElement);
+    }
+
+    function initCamera() {
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 0, DEFAULT_GRID_SIZE * 200);
+        // camera.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 8));
+    }
+
+    function initLights() {
+        // var directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        // directionalLight.position.set(0.75, 0.75, 1.0).normalize();
+        // scene.add(directionalLight);
+        //
+        // var ambientLight = new THREE.AmbientLight(0xcccccc, 0.2);
+        // scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0x444444));
+
+        var light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(0, 20, 20);
+
+        light.castShadow = true;
+        light.shadow.camera.top = 10;
+        light.shadow.camera.bottom = -10;
+        light.shadow.camera.left = -10;
+        light.shadow.camera.right = 10;
+
+        //告诉平行光需要开启阴影投射
+        light.castShadow = true;
+
+        scene.add(light);
+    }
+
+    function onDocumentMouseMove(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        //Display info text sprite.
+        var intersects = getIntersects()
+        setIntersectedObject(intersects.length > 0 ? intersects[0] : null);
+
+        if (intersects.length > 0) {
+
+            var center = getCenter(intersects[0].object);
+            var screen = toScreenPosition(center);
+            $('#fly').text('HTML Flying Div: ' + intersects[0].object.name + '\t\n{x: ' + Math.round(screen.x) + ', y: ' + Math.round(screen.y) + '}');
+
+
+            //修改第一个的div的位置
+            // var width = $('#fly').width();
+            // var height = $('#fly').height();
+            $("#fly").css({
+                left: screen.x,// - width / 2,
+                top: screen.y// - height / 2
+            });
+        }
+    }
+
+    function setIntersectedObject(newIntersected) {
+        var changed = currentIntersected == null ? newIntersected != null : currentIntersected != newIntersected;
+        currentIntersected = newIntersected;
+        if (changed) {
+            if (currentIntersected == null) {
+                if (highlightIntersected != null) {
+                    restoreSurfaceColor(highlightIntersected);
+                    highlightIntersected = null;
+                }
+                if (highlightSprite != null) {
+                    scene.remove(highlightSprite);
+                    highlightSprite = null;
+                }
+            } else if (currentIntersected != highlightIntersected) {
+                restoreSurfaceColor(highlightIntersected);
+                highlightIntersected = currentIntersected;
+                saveSurfaceColor(highlightIntersected);
+                changeSurfaceColor(highlightIntersected, 0xffff00);
+                if (highlightSprite != null) {
+                    scene.remove(highlightSprite);
+                }
+            }
+        }
+        if (currentIntersected && currentIntersected.object) {
+            // hiOnScreen(currentIntersected.object);
+        }
+    }
+
+    function onDocumentMouseDown(event) {
+        // event.preventDefault();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        if (currentIntersected != null) {
+
+            scene.remove(pathBlueLine);
+            scene.remove(pathRedLine);
+            scene.remove(pathGreenLine);
+            scene.remove(pathFatLine);
+            $('input').remove('.point');
+
+            //Quickly erase source and target if click again.
+            if (sourceIntersected == currentIntersected) {
+                // restoreSurfaceColor(sourceIntersected);
+                sourceIntersected = null;
+                if (sourceSprite) {
+                    scene.remove(sourceSprite);
+                }
+                sourceSprite = null;
+                return;
+            }
+            if (targetIntersected == currentIntersected) {
+                // restoreSurfaceColor(targetIntersected);
+                targetIntersected = null;
+                if (targetSprite) {
+                    scene.remove(targetSprite);
+                }
+                targetSprite = null;
+                return;
+            }
+
+            if (sourceIntersected == null) {
+                sourceIntersected = currentIntersected;
+                // saveSurfaceColor(sourceIntersected);
+                sourceSprite = addIconSprite(SOURCE_SPRITE_URL, sourceIntersected);
+                // changeSurfaceColor(sourceIntersected, 0x0000ff, true);
+
+            } else if (targetIntersected == null) {
+                targetIntersected = currentIntersected;
+                // saveSurfaceColor(targetIntersected);
+                targetSprite = addIconSprite(TARGET_SPRITE_URL, targetIntersected);
+                // changeSurfaceColor(targetIntersected, 0xff0000, true);
+            } else if (sourceIntersected != null && targetIntersected != null) {
+                //Reset both of them
+                if (sourceSprite) {
+                    scene.remove(sourceSprite);
+                }
+                sourceIntersected = currentIntersected;
+                // saveSurfaceColor(sourceIntersected);
+                sourceSprite = addIconSprite(SOURCE_SPRITE_URL, sourceIntersected);
+                // changeSurfaceColor(sourceIntersected, 0x0000ff, true);
+
+                // restoreSurfaceColor(targetIntersected);
+                targetIntersected = null;
+                if (targetSprite) {
+                    scene.remove(targetSprite);
+                }
+                targetSprite = null;
+            }
+
+            if (sourceIntersected != null && targetIntersected != null && (sourceIntersected != targetIntersected)) {
+
+                var start = getGridRect(sourceIntersected.object); // right side of source
+                var end = getGridRect(targetIntersected.object); // let side of target
+                // TODO: find a opened cell for current box.
+                var startGrid = findOpenNode(start.right);
+                var endGrid = findOpenNode(end.top);
+
+                if (startGrid == null || startGrid.isWall() || endGrid == null || endGrid.isWall()) {
+                    console.log("WARN: failed to find open nodes to create lines.");
+                    alert("No open nodes found for finding path.")
+                    return;
+                }
+
+                console.log("Start = {x: " + startGrid.x + ", y: " + startGrid.y + "}");
+                console.log("End = {x: " + endGrid.x + ", y: " + endGrid.y + "}");
+                var result = astar.search(graph, startGrid, endGrid);
+                console.log("A* - paths: " + result.length);
+                for (var i = 0; i < result.length; i++) {
+                    console.log("A* - path " + i + ": {x: " + result[i].x + ", y: " + result[i].y + "}");
+                }
+                //1. Grid Axes: Horizontal/Right for X, and Vertical/Bottom for Y.
+                //2. Three Axes: Horizontal/Right for X, Vertical/Top for Y and Outsize for Z.
+                //3. Convert grid axes to three axes:
+                //   a. GraphNode.x means the row of grid, it will be used to calculate the Y value of three Line.
+                //   b. GraphNode.y means the column of grid, it will be used to calculate the X value of three Line.
+                //   c. Since the orientation of X are same, only translating of it is required.
+                //   d. Because of the orientation of Y are opposed, we need to convert it in 2 steps:
+                //        d1. Get the negative value of all existing Y values.
+                //        d2. Translating the to the correct place.
+
+                printInfo(floorInfo.floor);
+
+                // addGreenLine(result, DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE);
+
+                // addRedLine(result, DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE);
+
+                // addBlueLine(result, DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE);
+
+                addFatLine(result, DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE);
+            }
+        }
+    }
+
+    function hiOnScreen(mesh) {
+        var positionOfCamera = camera.position;
+        var positionOfMesh = mesh.position;
+        var sizeOfMesh = getSize(mesh);
+        // distance from camera to face of floor.
+        var dist = positionOfCamera.z - positionOfMesh.z - sizeOfMesh.z / 2;
+        // convert vertical fov to radians
+        var vFOV = THREE.Math.degToRad(camera.fov);
+        // visible height
+        var height = 2 * Math.tan(vFOV / 2) * dist;
+        var fractionHeight = sizeOfMesh.y / height;
+        var heightPixels = window.innerHeight * fractionHeight;
+        // visible width
+        var width = height * camera.aspect;
+        var fractionWidth = sizeOfMesh.x / width;
+        var widthPixels = window.innerWidth * fractionWidth;
+
+        var center = getCenter(mesh);
+        var centerOnScreen = toScreenPosition(center);
+
+        $('#screen').width(widthPixels);
+        $('#screen').height(heightPixels);
+        $('#screen').css({top: centerOnScreen.y - heightPixels / 2, left: centerOnScreen.x - widthPixels / 2});
+    }
+
+    function addFatLine(result, cellWidth, cellHeight) {
+        var geo = new THREE.Geometry();
+        var tz = DEFAULT_EXTRUDE_DEPTH * 2;
+        for (var i = 0; i < result.length; i++) {
+            var node = result[i];
+            var point2d = {
+                x: node.y * cellWidth + cellWidth / 2 - floorInfo.width / 2,
+                y: floorInfo.height - (node.x * cellHeight + cellHeight / 2 + floorInfo.height / 2)
+            };
+            var point3d = new THREE.Vector3(point2d.x, point2d.y, tz);
+
+            geo.vertices.push(point3d);
+        }
+
+        var g = new MeshLine();
+        g.setGeometry(geo);
+
+        var material = new MeshLineMaterial( {
+            useMap: false,
+            color: new THREE.Color(0x0000ff),
+            opacity: 1,
+            resolution: resolution,
+            sizeAttenuation: !false,
+            lineWidth: 5,
+            near: camera.near,
+            far: camera.far
+        });
+        pathFatLine = new THREE.Mesh( g.geometry, material );
+        scene.add(pathFatLine);
+    }
+
+    function addGreenLine(result, cellWidth, cellHeight) {
+        var points = [];
+        for (var i = 0; i < result.length; i++) {
+            var node = result[i];
+            console.log("    path - " + i + ": {x:" + node.x + ", y: " + node.y + "}");
+            //The point on floor area.
+            var point = new THREE.Vector3(
+                (node.y * cellWidth + cellWidth / 2),   //x
+                (node.x * cellHeight + cellHeight / 2), //y
+                DEFAULT_EXTRUDE_DEPTH                                      //z
+            );
+            console.log("point3d G- " + i + ": {x: " + point.x + ", y: " + point.y + ", z: " + point.z + "}");
+            points.push(point);
+        }
+        var geometry = new THREE.BufferGeometry().setFromPoints(points);
+        var material = new THREE.LineBasicMaterial({
+            color: 0x00ff00
+        });
+
+        pathGreenLine = new THREE.Line(geometry, material);
+        pathGreenLine.rotation.x = Math.PI;
+        pathGreenLine.translateZ(-DEFAULT_EXTRUDE_DEPTH * 3); //reverse it with depth.
+
+        pathGreenLine.translateX(-floorInfo.width / 2);
+        pathGreenLine.translateY(-floorInfo.height / 2);
+        pathGreenLine.name = "path-finding";
+        scene.add(pathGreenLine);
+    }
+
+    function addGreenLine2(result, cellWidth, cellHeight) {
+        var shape = new THREE.Shape();
+        for (var i = 0; i < result.length; i++) {
+            var node = result[i];
+            console.log("    path - " + i + ": {x:" + node.x + ", y: " + node.y + "}");
+            //The point on floor area.
+            var x = (node.y * cellWidth + cellWidth / 2);
+            var y = (node.x * cellHeight + cellHeight / 2);
+            var point = new THREE.Vector3(
+                (node.y * cellWidth + cellWidth / 2),   //x
+                (node.x * cellHeight + cellHeight / 2), //y
+                DEFAULT_EXTRUDE_DEPTH                                      //z
+            );
+            console.log("point3d G- " + i + ": {x: " + point.x + ", y: " + point.y + ", z: " + point.z + "}");
+            if (i == 0) {
+                shape.moveTo(x, y);
+            } else {
+                shape.lineTo(x, y);
+            }
+        }
+
+        var geometry = new THREE.ShapeGeometry(shape);
+        var material = new THREE.MeshBasicMaterial({
+            color: 0x00ff00
+        });
+
+        pathGreenLine = new THREE.Line(geometry, material);
+        pathGreenLine.rotation.x = Math.PI;
+        pathGreenLine.translateZ(-DEFAULT_EXTRUDE_DEPTH * 2 - 5); //reverse it with depth.
+        pathGreenLine.translateX(-floorInfo.width / 2);
+        pathGreenLine.translateY(-floorInfo.height / 2);
+        pathGreenLine.name = "path-finding";
+        scene.add(pathGreenLine);
+    }
+
+    function addRedLine(result, cellWidth, cellHeight) {
+        //RED LINE
+        var testVector = new THREE.Vector3(1, 1, 10).project(camera); // To make sure the z of line is 10 in three coordinate.
+        var pointsRed = [];
+        var WIN_WIDTH = window.innerWidth;
+        var WIN_HEIGHT = window.innerHeight;
+        for (var i = 0; i < result.length; i++) {
+            var node = result[i];
+            console.log("   path - " + i + ": {x:" + node.x + ", y: " + node.y + "}");
+            var point2d = {
+                x: node.y * cellWidth + cellWidth / 2 + WIN_WIDTH / 2 - floorInfo.width / 2,
+                y: node.x * cellHeight + cellHeight / 2 + WIN_HEIGHT / 2 - floorInfo.height / 2
+            };
+            console.log("       point2d  - " + i + ": {x: " + point2d.x + ", y: " + point2d.y + ", z: " + point2d.z + "}");
+            var point3d = new THREE.Vector3(point2d.x * 2 / WIN_WIDTH - 1, 1 - point2d.y * 2 / WIN_HEIGHT, testVector.z);
+            point3d.unproject(camera);
+            pointsRed.push(point3d);
+            console.log("       point3d R- " + i + ": {x: " + point3d.x + ", y: " + point3d.y + ", z: " + point3d.z + "}");
+        }
+        var positionOfCamera = camera.position;
+        var positionOfFloor = floorInfo.floor.position;
+        var sizeOfFloor = getSize(floorInfo.floor);
+        // var vFOV = camera.fov * Math.PI / 180;
+        var dist = positionOfCamera.z - positionOfFloor.z - sizeOfFloor.z / 2;
+        var vFOV = THREE.Math.degToRad(camera.fov); // convert vertical fov to radians
+
+        var height = 2 * Math.tan(vFOV / 2) * dist; // visible height
+
+        var width = height * camera.aspect;           // visibl
+
+        var fractionWidth = floorInfo.width / width;
+        var widthPixes = window.innerWidth * fractionWidth;
+        var value = widthPixes / floorInfo.width;
+
+        pathRedLine = buildLine(pointsRed, 0xff0000);
+        pathRedLine.scale.setScalar(value); // TODO: Fixed this value.
+    }
+
+    function addBlueLine(result, cellWidth, cellHeight) {
+        //BLUE LINE: add line with path.
+        var pointsBlue = [];
+        var tz = DEFAULT_EXTRUDE_DEPTH * 3;
+        for (var i = 0; i < result.length; i++) {
+            var node = result[i];
+            console.log("   path - " + i + ": {x:" + node.x + ", y: " + node.y + "}");
+            var point2d = {
+                x: node.y * cellWidth + cellWidth / 2 - floorInfo.width / 2,
+                y: floorInfo.height - (node.x * cellHeight + cellHeight / 2 + floorInfo.height / 2)
+            };
+            console.log("       point2d  - " + i + ": {x: " + point2d.x + ", y: " + point2d.y + ", z: " + point2d.z + "}");
+            var point3d = new THREE.Vector3(point2d.x, point2d.y, tz);
+            pointsBlue.push(point3d);
+            console.log("       point3d B- " + i + ": {x: " + point3d.x + ", y: " + point3d.y + ", z: " + point3d.z + "}");
+        }
+        pathBlueLine = buildLine(pointsBlue, 0x0000ff);
+        var pb = pathBlueLine.position;
+    }
+
+    /*Build with THREE.Line*/
+    function buildLine(points, color) {
+        var geometry = new THREE.Geometry();
+        for (var i = 0; i < points.length; i++) {
+            geometry.vertices.push(points[i]);
+        }
+
+        var material = new THREE.LineBasicMaterial({
+            color: color == undefined ? 0x0000ff : color,
+            linewidth: 5
+        });
+
+        var line = new THREE.Line(geometry, material);
+        scene.add(line);
+        return line;
+    }
+
+    function restoreSurfaceColor(intersected) {
+        if (intersected) {
+            intersected.object.material.color.setHex(intersected.currentHex);
+        }
+    }
+
+    function saveSurfaceColor(intersected) {
+        if (intersected) {
+            intersected.currentHex = intersected.object.material.color.getHex();
+        }
+
+    }
+
+    function changeSurfaceColor(intersected, hex, force) {
+        if (intersected) {
+            intersected.object.material.color.setHex(hex);
+            if (force && intersected == highlightIntersected) {
+                highlightIntersected.currentHex = hex;
+            }
+        }
+    }
+
+    // Create and add a sprite with icon on intersected object.
+    function addIconSprite(path, intersected) {
+        var iconSprite = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.TextureLoader().load(path)}));
+        iconSprite.position.copy(intersected.point);
+        iconSprite.positionZ = iconSprite.positionZ + 150;
+        iconSprite.scale.x = iconSprite.scale.y = 20;//100;
+        scene.add(iconSprite);
+        return iconSprite;
+    }
+
+    // Get intersected objects under mouse.
+    function getIntersects() {
+        raycaster.setFromCamera(mouse, camera);
+        var children = group.children.filter(function (mesh) {
+            // return mesh.name != "floor"; // Filter the floor mesh.
+            return true;
+        });
+        return raycaster.intersectObjects(children, false);
+    }
+
+    function createMap(shapePaths) {
+        var floorPath, floor, floorSize;
+
+        // These offset values used move the Three objects to center(0, 0, 0).
+        var offset3d = {};
+
+        // 1. Get the floor of map, this should be configured from a external file.
+        //TODO: load it
+        if (shapePaths.length > 0) {
+            floorPath = shapePaths[0];
+            //Create floor geometry with depth 1.
+            var shapes = floorPath.toShapes(true, true);
+            var geometry = new THREE.ExtrudeBufferGeometry(shapes, {depth: 1});
+
+            //Create floor material with original color.
+            var material = new THREE.MeshBasicMaterial({color: 0xffffff});
+
+            //Compute the size of floor.
+            floorSize = getSize(geometry);
+
+            // Move floor to center
+            offset3d.x = -floorSize.x / 2;
+            offset3d.y = -floorSize.y / 2;
+
+            floor = new THREE.Mesh(geometry, material);
+            floor.rotation.x = Math.PI; //rotate 180 from X-axes.
+            floor.translateZ(-2); //reverse it with depth.
+            floor.translateX(offset3d.x); // move to center
+            floor.translateY(offset3d.y); // move to center
+            floor.name = "floor";
+            group.add(floor);
+        }
+
+        // 2. Create other shapes on floor
+        for (var i = 0; i < shapePaths.length; i++) {
+            var path = shapePaths[i];
+            if (path == floorPath) {
+                continue;
+            }
+
+            // Filter Chinese Characters Path
+            if (containsChinese(path.node.id)) {
+                continue;
+            }
+
+            var shapes = path.toShapes(true, true);
+
+            var depth = DEFAULT_EXTRUDE_DEPTH;
+
+            var geometry = new THREE.ExtrudeBufferGeometry(shapes, {depth: depth});
+            var material = new THREE.MeshBasicMaterial({color: path.color});
+            var mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = Math.PI;
+            mesh.translateZ(-depth - 1); //reverse it with depth.
+            mesh.translateX(offset3d.x);
+            mesh.translateY(offset3d.y);
+            mesh.name = path.node.id;
+
+            group.add(mesh);
+
+        }
+
+        // 3. Map floorInfo
+        floorInfo.width = floorSize.x;
+        floorInfo.height = floorSize.y;
+        floorInfo.floor = floor;
+
+        // 4. Finally, generate Grids
+        generateGrids();
+    }
+
+    function generateGrids() {
+        var gridSize = DEFAULT_GRID_SIZE;
+        gridGenerator = new GridGenerator(floorInfo.width, floorInfo.height, gridSize);
+
+        for (var mesh of group.children) {
+            if (mesh == floorInfo.floor) {
+                continue;
+            }
+
+            // Add current shape as the wall in grid.
+            var rect = getGridRect(mesh);
+            // Rotate y axes.
+            gridGenerator.addWalls(rect);
+        }
+        // Create Astar Graph.
+        graph = new Graph(gridGenerator.grid);
+
+        console.log("Grids:");
+        console.log(gridGenerator.gridArrayDebug());
+        console.log("Create Map finished");
+    }
+
+
+    function loadThreeData() {
+        var loader = new THREE.SVGLoader();
+        loader.load(
+            SVG_URL, //SVG文件的URL
+            function (shapePaths) {
+                createMap(shapePaths);
+            },
+            // 加载进度
+            function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+
+            },
+            // 异常处理
+            function (error) {
+                console.log('An error happened' + error);
+            }
+        );
+
+    }
+
+    function onWindowResize() {
+        resolution.set(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    //
+    function animate() {
+
+        update();
+
+        render();
+
+        requestAnimationFrame(animate);
+
+    }
+
+    function update() {
+        controls.update();
+
+        time = Date.now();
+    }
+
+
+    function render() {
+        renderer.render(scene, camera);
+    }
+
+
+</script>
+
+</body>
+</html>
