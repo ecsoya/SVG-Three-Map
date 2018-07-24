@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Three Camera Demo</title>
+</head>
+<body>
+<script src="../js/three.js"></script>
+<script src="../js/OrbitControls.js"></script>
+<script src="../js/Tween.js"></script>
+<script>
+    var camera, scene, controls, renderer, raycaster, selectionBox, group;
+
+    init();
+    animate();
+
+    function init() {
+
+        // scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 0, 500);
+        // camera helper
+        var helper = new THREE.CameraHelper(camera);
+        scene.add(helper);
+
+        //Selection box
+        selectionBox = new THREE.BoxHelper();
+        selectionBox.material.depthTest = false;
+        selectionBox.material.transparent = true;
+        selectionBox.visible = false;
+        scene.add(selectionBox);
+
+        //raycaster
+        raycaster = new THREE.Raycaster();
+
+        // light
+        var light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(0, 0, 1);
+        scene.add(light);
+
+        group = new THREE.Group();
+        addCubes(group);
+        scene.add(group);
+
+        // renderer
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        document.addEventListener('mousemove', onDocumentMouseMove);
+        document.addEventListener('mousedown', onDocumentMouseDown);
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    function tweenCamera(position, target) {
+        new TWEEN.Tween(camera.position).to({
+            x: position.x,
+            y: position.y,
+            z: position.z
+        }, 600)
+            .easing(TWEEN.Easing.Sinusoidal.InOut).start();
+        new TWEEN.Tween(controls.target).to({
+            x: target.x,
+            y: target.y,
+            z: target.z
+        }, 600)
+            .easing(TWEEN.Easing.Sinusoidal.InOut).start();
+    }
+
+    function onDocumentMouseMove(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    var mouse = {};
+
+    function onDocumentMouseDown(event) {
+        // event.preventDefault();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(group.children, false);
+        if (intersects.length > 0) {
+            //Select intersect object with yellow box.
+            selectionBox.setFromObject(intersects[0].object);
+            selectionBox.visible = true;
+
+            //Move camera to the position of intersect object.
+            var position = intersects[0].object.position.clone();
+            var location = new THREE.Vector3(
+                position.x,
+                position.y,
+                500
+            );
+            // Move it without animation.
+            // camera.position = position;
+            // camera.lookAt(position);
+
+            //Move camera with animation by using https://github.com/sole/tween.js
+            tweenCamera(location, location);
+        } else {
+            selectionBox.visible = false;
+        }
+
+    }
+
+    function addCubes(parent) {
+        var cube1 = new THREE.Mesh(new THREE.BoxGeometry(25, 50, 20), new THREE.MeshBasicMaterial({color: 0xff0000}));
+        cube1.name = "Cube1";
+        parent.add(cube1);
+
+        var cube2 = new THREE.Mesh(new THREE.BoxGeometry(25, 50, 20), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+        cube2.translateX(75);
+        cube2.name = "Cube2";
+        parent.add(cube2);
+
+        var cube3 = new THREE.Mesh(new THREE.BoxGeometry(25, 50, 20), new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        cube3.translateX(-75);
+        cube3.name = "Cube3";
+        parent.add(cube3);
+
+        var cube4 = new THREE.Mesh(new THREE.BoxGeometry(25, 50, 20), new THREE.MeshBasicMaterial({color: 0x0ffff0}));
+        cube4.translateY(75);
+        cube4.name = "Cube4";
+        parent.add(cube4);
+
+        var cube5 = new THREE.Mesh(new THREE.BoxGeometry(25, 50, 20), new THREE.MeshBasicMaterial({color: 0x0ff0ff}));
+        cube5.translateY(-75);
+        cube5.name = "Cube5";
+        parent.add(cube5);
+    }
+
+    function animate() {
+        renderer.render(scene, camera);
+
+        TWEEN.update();
+        requestAnimationFrame(animate);
+    }
+</script>
+</body>
+</html>
