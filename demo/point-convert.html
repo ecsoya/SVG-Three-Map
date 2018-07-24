@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Convert Three Point to Screen</title>
+    <style>
+        .highlight {
+            background-color: crimson;
+            opacity: 0.3;
+            position: fixed;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+<div id="screen" class="highlight"></div>
+<div id="three" style="width: 500px; height: 500px; top: 50px; left: 200px; position: fixed"></div>
+<script src="../js/jquery-3.3.1.js"></script>
+<script src="../js/three.min.js"></script>
+<script src="../js/OrbitControls.js"></script>
+
+<script>
+
+
+    var mouse = {};
+
+    var camera, scene, controls, renderer, raycaster;
+    init();
+    animate();
+
+    function init() {
+
+        // camera
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 10000);
+        camera.position.set(0, 50, 500);
+
+        raycaster = new THREE.Raycaster();
+
+        // scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        // light
+        var light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(0, 0, 1);
+        scene.add(light);
+
+        addCubes();
+
+        // renderer
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        document.addEventListener('mousemove', onDocumentMouseMove);
+    }
+
+    function onDocumentMouseMove(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        var intersected = raycaster.intersectObjects(scene.children, false);
+        if (intersected.length > 0) {
+            hiOnScreen(intersected[0].object);
+        } else {
+            $('#screen').hide();
+        }
+        console.log("Intersected: " + intersected.length);
+    }
+
+    function hiOnScreen(mesh) {
+        var positionOfCamera = camera.position;
+        var positionOfMesh = mesh.position;
+
+        // Mesh的大小，BBox
+        var sizeOfMesh = getSize(mesh);
+        // 计算相机到mesh表面的距离，注意：Z轴垂直与mesh表面。
+        var dist = positionOfCamera.z - positionOfMesh.z - sizeOfMesh.z / 2;
+
+        // convert vertical fov to radians
+        var vFOV = THREE.Math.degToRad(camera.fov);
+
+        // 计算高度
+        var height = 2 * Math.tan(vFOV / 2) * dist;
+        // 在Three中实际高度与投影高度的一个比值
+        var fractionHeight = sizeOfMesh.y / height;
+        // 屏幕上的实际高度
+        var heightPixels = window.innerHeight * fractionHeight;
+
+        // 计算宽度
+        var width = height * camera.aspect;
+        var fractionWidth = sizeOfMesh.x / width;
+        //屏幕上的宽度
+        var widthPixels = window.innerWidth * fractionWidth;
+
+        // Mesh的中心点，BBox
+        var center = getCenter(mesh);
+        //将3D坐标转换到屏幕坐标
+        var centerOnScreen = toScreenPosition(center);
+
+
+        // 在屏幕上显示。
+        var x = $('canvas').offset().left;
+        var y = $('canvas').offset().top;
+
+        $('#screen').width(widthPixels);
+        $('#screen').height(heightPixels);
+        $('#screen').css({top: centerOnScreen.y - heightPixels / 2 + x, left: centerOnScreen.x - widthPixels / 2 + y});
+        $('#screen').show();
+    }
+
+    function getSize(object) {
+        if (object instanceof THREE.BufferGeometry) {
+            var geometry = new THREE.Geometry().fromBufferGeometry(object);
+            return getSize(geometry);
+        } else if (object instanceof THREE.Mesh) {
+            var box = new THREE.Box3();
+            box.setFromObject(object);
+            return box.getSize(new THREE.Vector3());
+        } else if (object instanceof THREE.Geometry) {
+            object.computeBoundingBox();
+            return object.boundingBox.getSize(new THREE.Vector3());
+        }
+        return null;
+    }
+
+    function getCenter(object) {
+        if (object instanceof THREE.BufferGeometry) {
+            var geometry = new THREE.Geometry().fromBufferGeometry(object);
+            return getCenter(geometry);
+        } else if (object instanceof THREE.Geometry) {
+            object.computeBoundingBox();
+            return object.boundingBox.getCenter(new THREE.Vector3());
+        } else if (object instanceof THREE.Mesh) {
+            var box = new THREE.Box3();
+            box.setFromObject(object);
+            return box.getCenter(new THREE.Vector3());
+        }
+        return null;
+    }
+
+    function toScreenPosition(point3d) {
+        var threePos = point3d.clone().project(camera);
+        var halfWidth = window.innerWidth / 2;
+        var halfHeight = window.innerHeight / 2;
+        var result = {
+            x: threePos.x * halfWidth + halfWidth,
+            y: -threePos.y * halfHeight + halfHeight
+        }
+        return result;
+    }
+
+    function animate() {
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+
+    function addCubes() {
+        for (var i = 0; i < 6; i++) {
+            var r = 15 * (i + 1) / 255;
+            var g = 20 * (i + 1) / 255;
+            var b = 30 * (i + 1) / 255;
+            var cube = new THREE.Mesh(new THREE.BoxGeometry(50, 100, 50), new THREE.MeshBasicMaterial({color: new THREE.Color(r, g, b)}));
+            if (i % 3 == 0) {
+                cube.translateY(i * 40)
+            } else if (i % 3 == 1) {
+                cube.translateX((i + 1) * 30)
+            } else {
+                cube.translateZ(i * 30)
+            }
+            scene.add(cube);
+        }
+    }
+
+
+</script>
+</body>
+</html>
