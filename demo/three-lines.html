@@ -113,60 +113,56 @@
     }
 
     function addLine2() {
-        // var line = new Float32Array( 600 );
-        // for( var j = 0; j < 200 * 3; j += 3 ) {
-        //     line[ j ] = -30 + .1 * j;
-        //     line[ j + 1 ] = 5 * Math.sin( .01 *  j );
-        //     line[ j + 2 ] = -20;
-        // }
-        // makeLine( line, 0 );
-        //
-        // var line = new Float32Array( 600 );
-        // for( var j = 0; j < 200 * 3; j += 3 ) {
-        //     line[ j ] = -30 + .1 * j;
-        //     line[ j + 1 ] = 5 * Math.cos( .02 *  j );
-        //     line[ j + 2 ] = -10;
-        // }
-        // makeLine( line, 1 );
-        //
-        // var line = new Float32Array( 600 );
-        // for( var j = 0; j < 200 * 3; j += 3 ) {
-        //     line[ j ] = -30 + .1 * j;
-        //     line[ j + 1 ] = 5 * Math.sin( .01 *  j ) * Math.cos( .005 * j );
-        //     line[ j + 2 ] = 0;
-        // }
-        // makeLine( line, 2 );
-        //
-        // var line = new Float32Array( 600 );
-        // for( var j = 0; j < 200 * 3; j += 3 ) {
-        //     line[ j ] = -30 + .1 * j;
-        //     line[ j + 1 ] = .02 * j + 5 * Math.sin( .01 *  j ) * Math.cos( .005 * j );
-        //     line[ j + 2 ] = 10;
-        // }
-        // makeLine( line, 4 );
-        //
-        // var line = new Float32Array( 600 );
-        // for( var j = 0; j < 200 * 3; j += 3 ) {
-        //     line[ j ] = -30 + .1 * j;
-        //     line[ j + 1 ] = Math.exp( .005 * j );
-        //     line[ j + 2 ] = 20;
-        // }
-        // makeLine( line, 5 );
-        //
-        // var line = new THREE.Geometry();
-        // line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
-        // line.vertices.push( new THREE.Vector3( 30, -30, -30 ) );
-        // makeLine( line, 3 );
-        //
-        // var line = new THREE.Geometry();
-        // line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
-        // line.vertices.push( new THREE.Vector3( -30, 30, -30 ) );
-        // makeLine( line, 3 );
+        var line = new Float32Array( 600 );
+        for( var j = 0; j < 200 * 3; j += 3 ) {
+            line[ j ] = -30 + .1 * j;
+            line[ j + 1 ] = 5 * Math.sin( .01 *  j );
+            line[ j + 2 ] = -20;
+        }
+        makeLine( line, 0 );
+
+        var line = new Float32Array( 600 );
+        for( var j = 0; j < 200 * 3; j += 3 ) {
+            line[ j ] = -30 + .1 * j;
+            line[ j + 1 ] = 5 * Math.cos( .02 *  j );
+            line[ j + 2 ] = -10;
+        }
+        makeLine( line, 1 );
+
+        var line = new Float32Array( 600 );
+        for( var j = 0; j < 200 * 3; j += 3 ) {
+            line[ j ] = -30 + .1 * j;
+            line[ j + 1 ] = 5 * Math.sin( .01 *  j ) * Math.cos( .005 * j );
+            line[ j + 2 ] = 0;
+        }
+        makeLine( line, 2 );
+
+        var line = new Float32Array( 600 );
+        for( var j = 0; j < 200 * 3; j += 3 ) {
+            line[ j ] = -30 + .1 * j;
+            line[ j + 1 ] = .02 * j + 5 * Math.sin( .01 *  j ) * Math.cos( .005 * j );
+            line[ j + 2 ] = 10;
+        }
+        makeLine( line, 4 );
+
+        var line = new Float32Array( 600 );
+        for( var j = 0; j < 200 * 3; j += 3 ) {
+            line[ j ] = -30 + .1 * j;
+            line[ j + 1 ] = Math.exp( .005 * j );
+            line[ j + 2 ] = 20;
+        }
+        makeLine( line, 5 );
 
         var line = new THREE.Geometry();
         line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
-        line.vertices.push( new THREE.Vector3( -30, -30, 30 ) );
+        line.vertices.push( new THREE.Vector3( 30, -30, -30 ) );
         makeLine( line, 3 );
+
+        var line = new THREE.Geometry();
+        line.vertices.push( new THREE.Vector3( -30, -30, -30 ) );
+        line.vertices.push( new THREE.Vector3( -30, 30, -30 ) );
+        makeLine( line, 3 );
+
     }
 
     function makeLine( geo, c ) {
@@ -176,7 +172,7 @@
 
         var material = new MeshLineMaterial( {
             useMap: false,
-            // color: new THREE.Color( colors[ c ] ),
+            color: new THREE.Color( colors[ c ] ),
             opacity: 1,
             resolution: resolution,
             sizeAttenuation: !false,
