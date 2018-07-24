@@ -36,13 +36,13 @@
 <script src="js/Rect.js"></script>
 <script src="main.js"></script>
 <script>
-    // const SVG_URL = "data/simple2.three.svg";
-    // const DEFAULT_EXTRUDE_DEPTH = 5;
-    // const DEFAULT_GRID_SIZE = 1;
+    const SVG_URL = "data/simple2.three.svg";
+    const DEFAULT_EXTRUDE_DEPTH = 5;
+    const DEFAULT_GRID_SIZE = 1;
 
-    const SVG_URL = "data/svg2.three.svg";
-    const DEFAULT_EXTRUDE_DEPTH = 50;
-    const DEFAULT_GRID_SIZE = 20;
+    // const SVG_URL = "data/svg2.three.svg";
+    // const DEFAULT_EXTRUDE_DEPTH = 50;
+    // const DEFAULT_GRID_SIZE = 20;
 
     const SOURCE_SPRITE_URL = "data/sprites/source-sprite.png";
     const TARGET_SPRITE_URL = "data/sprites/target-sprite.png";
@@ -401,7 +401,7 @@
             opacity: 1,
             resolution: resolution,
             sizeAttenuation: !false,
-            lineWidth: 5,
+            lineWidth: DEFAULT_GRID_SIZE / 4,
             near: camera.near,
             far: camera.far
         });
@@ -676,7 +676,7 @@
             gridGenerator.addWalls(rect);
         }
         // Create Astar Graph.
-        graph = new Graph(gridGenerator.grid);
+        graph = new Graph(gridGenerator.grid, { diagonal: true });//shortest path
 
         console.log("Grids:");
         console.log(gridGenerator.gridArrayDebug());
